@@ -52,7 +52,7 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database, batch='my_kra
     s.join(tasks, retry=2)
 
 if __name__=='__main__':
-    SCITQ_SERVER = os.environ('SCITQ_SERVER')
+    SCITQ_SERVER = os.environ.get('SCITQ_SERVER')
     parser = argparse.ArgumentParser(
                     prog = 'SCITQ Kraken2',
                     description = 'Launch a Kraken2 scan on some FASTA files')

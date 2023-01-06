@@ -163,7 +163,7 @@ class CamisimHelper:
 
 
 if __name__=='__main__':
-    SCITQ_SERVER = os.environ('SCITQ_SERVER')
+    SCITQ_SERVER = os.environ.get('SCITQ_SERVER')
     parser = argparse.ArgumentParser(
                     prog = 'SCITQ Camisim',
                     description = 'Launch a Camisim simulation using specific genomes')

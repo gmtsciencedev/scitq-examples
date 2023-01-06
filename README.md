@@ -15,7 +15,8 @@ Most of the time these commands will take input or output as S3 path :
 
 Sometime you will need direct access to those folder (thus having a proper `.aws` folder with `credentials` and optional `config`)
 
-In the specific case of OVH S3, you will need the following `.aws/config` (this is documented in OVH but somewhat hidden):
+In the specific case of OVH S3, you will need the following `.aws/config` (this is documented in OVH : https://docs.ovh.com/gb/en/storage/object-storage/pcs/getting-started-with-the-swift-s3-api/#configure-aws-client):
+
 ```ini
 [plugins]
 endpoint = awscli_plugin_endpoint
@@ -28,6 +29,8 @@ s3 =
 s3api =
   endpoint_url = https://s3.gra.perf.cloud.ovh.net
 ```
+!!! note
+    be careful to adapt endpoint_url to the OVH region of your S3 storage, the above example is only for GRA region (Graveline).
 
 So to use the examples, you will need to create a bucket and load it with some files that will be explained for each example. This is done the usual way with `aws s3 cp ...` or `aws s3 sync ...` 
 

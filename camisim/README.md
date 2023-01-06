@@ -4,7 +4,7 @@ CAMISIM (https://github.com/CAMI-challenge/CAMISIM) is a reference program as re
 
 Also CAMISIM is very slow due to all the extra files it prepares (notably SAM files converted to BAM files). By default with a depth of 2x10M reads (of 150bp), some sample may take up to 3 days to generate (if they are complex like rich natural samples, ~400 species).
 
-That being said, the example is complete and will require minimal work from you, but you will have to pay for the simulation. Each day of i1-180 cost slightly less than 43 € (not includint taxes). 3 days should give you 9 samples per i1-180 worker, which makes a sample ~15 €.
+That being said, the example is complete and will require minimal work from you, but you will have to pay for the simulation. Each day of i1-180 cost slightly less than 43 € (not including taxes). 3 days should give you 9 samples per i1-180 worker, which makes a sample ~15 €.
 
 ## resources
 
