@@ -32,6 +32,8 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database, batch='my_kra
     items = [item.key.split('/')[-1][:-3] for item in 
                 bucket.objects.filter(Prefix=s3_path) if item.key.endswith('.fa')]
 
+    if not s3_output.endswith('/'):
+        s3_output+='/'
 
     tasks = []
     for name in items:
@@ -66,6 +68,9 @@ if __name__=='__main__':
     parser.add_argument('--workers', type=int, 
         help=f'Number of instances to use, default to 5 (each worker will treat ~2 1MB-long FASTA per hour)', default=5)
     args = parser.parse_args()
+
+    if not args.scitq:
+        raise RuntimeError('You must define which SCITQ server we use, either defining SCITQ_SERVER environment variable or using --scitq')
 
     kraken2(args.scitq, args.s3_input, args.s3_output, args.s3_kraken, batch=args.batch,
         region=args.region, workers=args.workers)
