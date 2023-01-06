@@ -4,7 +4,7 @@ CAMISIM (https://github.com/CAMI-challenge/CAMISIM) is a reference program as re
 
 Also CAMISIM is very slow due to all the extra files it prepares (notably SAM files converted to BAM files). By default with a depth of 2x10M reads (of 150bp), some sample may take up to 3 days to generate (if they are complex like rich natural samples, ~400 species).
 
-That being said, the example is complete and will require a minimal work to get it done from you, but you will have to pay for the simulation. Each day of i1-180 cost slightly less than 43 € (not includint taxes). 3 days should give you 9 samples per i1-180 worker, which makes a sample ~15 €.
+That being said, the example is complete and will require minimal work from you, but you will have to pay for the simulation. Each day of i1-180 cost slightly less than 43 € (not includint taxes). 3 days should give you 9 samples per i1-180 worker, which makes a sample ~15 €.
 
 ## resources
 
@@ -68,8 +68,8 @@ NB: If SCITQ version is below v1.0rc6, and you use a specific S3 endpoint, it mu
 
 This script requires OVH special instance i1-180. This instance is sometime hard to find (and may turn to error upon deploy). This error is due to some limitations within OVH system and is not related to SCITQ (or CAMISIM of course). It is advised to look at OVH console to see if instances are sane (any worker that turns with a blue dot in SCITQ UI is fine, only workers that stay with a grey dot for a long time are likely to have failed). You can add manually via SCITQ UI more instances if some fails (just delete the failed ones with SCITQ UI):
 
-- concurrency: 1
-- prefetch: 1
+- concurrency: 9
+- prefetch: 0
 - flavor: i1-180
 - region: any region (GRA11 or UK1 or WAW1 or BHS5 or GRA7 should be fine)
 - batch: the name of your batch (my_kraken2 if you kept the default)
