@@ -1,6 +1,6 @@
 # CAMISIM
 
-CAMISIM is a reference program as regards sample simulators, and there are not many of them. It is a difficult program to use and is much challenging to distribute efficiently, as it consumes lots of resources in CPU, memory and one particularly delicate to tune: disk IO. Notably it makes a dramatically expensive use of temporary disk space with lots of read/write cycles. High IO instances (like OVH i1-180) are particularly adapted to CAMISIM.
+CAMISIM (https://github.com/CAMI-challenge/CAMISIM) is a reference program as regards sample simulators, and there are not many of them. It is a difficult program to use and is much challenging to distribute efficiently, as it consumes lots of resources in CPU, memory and one particularly delicate to tune: disk IO. Notably it makes a dramatically expensive use of temporary disk space with lots of read/write cycles. High IO instances (like OVH i1-180) are particularly adapted to CAMISIM.
 
 Also CAMISIM is very slow due to all the extra files it prepares (notably SAM files converted to BAM files). By default with a depth of 2x10M reads (of 150bp), some sample may take up to 3 days to generate (if they are complex like rich natural samples, ~400 species).
 
