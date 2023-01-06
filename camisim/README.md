@@ -6,6 +6,8 @@ Also CAMISIM is very slow due to all the extra files it prepares (notably SAM fi
 
 That being said, the example is complete and will require minimal work from you, but you will have to pay for the simulation. Each day of i1-180 cost slightly less than 43 € (not including taxes). 3 days should give you 9 samples per i1-180 worker, which makes a sample ~15 €.
 
+Special thanks to Florian Plaza-Oñate for his help on CAMISIM setup.
+
 ## resources
 
 CAMISIM resources are not very heavy and we have simplified things a lot (making lots of choices that fit our use of CAMISIM, see notably CONFIG_INI template within code and look into CAMISIM documentation for help). Roughly: we use only CAMISIM `metagenomesimulation.py` script which use external genomes that must be provided as a tar.gz archive (which composition is detailed just below), we generate 150bp long reads, 10 millions of pairs (but this figure of 10, called depth, can be changed with --depth parameter).
