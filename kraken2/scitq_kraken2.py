@@ -4,8 +4,9 @@ import argparse
 from scitq.fetch import get_s3
 import os
 
-def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database, batch='my_kraken2',
-        region='WAW1', workers=5):
+def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
+        bracken=False, download=False, fastq=False,
+        batch='my_kraken2', region='WAW1', workers=5):
     """Launch a kraken2 scan on FASTA files in s3_input folder using database present
     in s3_kraken_database, and putting result in s3_output folder.
 
@@ -29,18 +30,47 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database, batch='my_kra
 
     s3 = get_s3()
     bucket = s3.Bucket(s3_bucket)
-    items = [item.key.split('/')[-1][:-3] for item in 
-                bucket.objects.filter(Prefix=s3_path) if item.key.endswith('.fa')]
+    
+    if fastq:
+        sample_extension='.fastq.gz'
+    else:
+        sample_extension='.fa'
+
+    samples = {}
+    for item in [item.key for item in bucket.objects.filter(Prefix=s3_path) 
+                    if item.key.endswith(sample_extension)]:
+        if fastq:
+            sample = item.split('/')[-2]
+        else:
+            sample,_ = os.path.splitext(os.path.split(item)[-1])
+        path = f's3://{s3_bucket}/{item}'
+        if sample not in samples:
+            samples[sample]=[path]
+        else:
+            samples[sample].append(path)
+            
+    if len(samples)==0:
+        raise RuntimeError(f'No {"gzipped FASTQ (.fastq.gz)" if fastq else "FASTA (.fa)"} samples found in {s3_input}...')
 
     if not s3_output.endswith('/'):
         s3_output+='/'
 
     tasks = []
-    for name in items:
-        print(f'Launching for {name}')
-        tasks.append(s.task_create(command=f"sh -c 'kraken2 --use-names --threads $CPU --db /resource/ --report /output/{name}.report \
-    /input/{name}.fa > /output/{name}.kraken'",
-                input=f"{s3_input}/{name}.fa",
+    for name,sequences in samples.items():
+        print(f'Launching for {name} {sequences}')
+        if fastq:
+            input='--paired --gzip-compressed /input/*.fastq.gz'
+        else:
+            input='/input/*.fa'
+        if bracken:
+            command=f"sh -c 'kraken2 --use-names --threads $CPU --db /resource/ --report /output/{name}.report \
+    {input} > /output/{name}.kraken && \
+    bracken -d /resource/ -i /output/{name}.report -o /output/{name}.bracken'"
+        else:
+            command=f"sh -c 'kraken2 --use-names --threads $CPU --db /resource/ --report /output/{name}.report \
+    {input} > /output/{name}.kraken'"
+        tasks.append(s.task_create(command=command,
+                input=' '.join(sequences),
                 output=s3_output+name,
                 resource=s3_db_path,
                 container="gmtscience/kraken2bracken",
@@ -51,6 +81,10 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database, batch='my_kra
         concurrency=1, prefetch=1)
     s.join(tasks, retry=2)
 
+    if download:
+        sp.run([f'aws s3 sync {s3_output} {batch}'], shell=True, check=True)
+
+
 if __name__=='__main__':
     SCITQ_SERVER = os.environ.get('SCITQ_SERVER')
     parser = argparse.ArgumentParser(
@@ -59,6 +93,13 @@ if __name__=='__main__':
     parser.add_argument('s3_input', type=str, help='S3 folder for FASTA files')
     parser.add_argument('s3_kraken', type=str, help='S3 path to Kraken DB')
     parser.add_argument('s3_output', type=str, help='S3 folder for results')
+    
+    parser.add_argument('--bracken', action='store_true', 
+        help=f'Add bracken analysis to kraken2 to enhance species estimation.')
+    parser.add_argument('--fastq', action='store_true', 
+        help=f'Uses sample paired .fastq.gz sequences (grouped in a sample dir) instead of genome .fa files')
+    parser.add_argument('--download', action='store_true', 
+        help=f'Download results in the end.')
     parser.add_argument('--scitq', type=str, 
         help=f'SCITQ server FQDN, default to {SCITQ_SERVER}', default=SCITQ_SERVER)
     parser.add_argument('--batch', type=str, 
@@ -73,6 +114,7 @@ if __name__=='__main__':
         raise RuntimeError('You must define which SCITQ server we use, either defining SCITQ_SERVER environment variable or using --scitq')
 
     kraken2(args.scitq, args.s3_input, args.s3_output, args.s3_kraken, batch=args.batch,
-        region=args.region, workers=args.workers)
+        region=args.region, workers=args.workers, bracken=args.bracken, download=args.download,
+        fastq=args.fastq)
     
     

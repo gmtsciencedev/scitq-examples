@@ -21,6 +21,9 @@ ncftpget ftp://ftp.tue.mpg.de/ebio/projects/struo2/GTDB_release207/kraken2/hash.
 ncftpget ftp://ftp.tue.mpg.de/ebio/projects/struo2/GTDB_release207/kraken2/opts.k2d
 ncftpget ftp://ftp.tue.mpg.de/ebio/projects/struo2/GTDB_release207/kraken2/seqid2taxid.map
 ncftpget ftp://ftp.tue.mpg.de/ebio/projects/struo2/GTDB_release207/kraken2/taxo.k2d
+ncftpget ftp://ftp.tue.mpg.de/ebio/projects/struo2/GTDB_release207/kraken2/database150mers.kmer_distrib
+ncftpget ftp://ftp.tue.mpg.de/ebio/projects/struo2/GTDB_release207/kraken2/database100mers.kmer_distrib
+
 tar cvzf ../kraken_db.tgz .
 cd ..
 rm -fr gtdb_kraken

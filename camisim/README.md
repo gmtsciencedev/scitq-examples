@@ -2,9 +2,9 @@
 
 CAMISIM (https://github.com/CAMI-challenge/CAMISIM) is a reference program as regards sample simulators, and there are not many of them. It is a difficult program to use and is much challenging to distribute efficiently, as it consumes lots of resources in CPU, memory and one particularly delicate to tune: disk IO. Notably it makes a dramatically expensive use of temporary disk space with lots of read/write cycles. High IO instances (like OVH i1-180) are particularly adapted to CAMISIM.
 
-Also CAMISIM is very slow due to all the extra files it prepares (notably SAM files converted to BAM files). By default with a depth of 2x10M reads (of 150bp), some sample may take up to 3 days to generate (if they are complex like rich natural samples, ~400 species).
+Also CAMISIM is very slow due to all the extra files it prepares (notably SAM files converted to BAM files). By default with a depth of 2x10M reads (of 150bp), some sample may take up to 3 days to generate (if they are complex like rich natural samples, ~400 species). Average time is 12 hours (estimated on our latest batch of 200 samples).
 
-That being said, the example is complete and will require minimal work from you, but you will have to pay for the simulation. Each day of i1-180 cost slightly less than 43 € (not including taxes). 3 days should give you 9 samples per i1-180 worker, which makes a sample ~15 €.
+That being said, the example is complete and will require minimal work from you, but you will have to pay for the simulation. Each day of i1-180 cost slightly less than 43 € (not including taxes). 1 days should give you 18 samples per i1-180 worker, which makes a sample ~2.50 € of computation (+ a few extra centimes for downloading and temporary storage, so let's call it 3 € / sample, provided you have enough of them).
 
 Special thanks to Florian Plaza-Oñate for his help on CAMISIM setup.
 
