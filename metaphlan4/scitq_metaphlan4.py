@@ -13,7 +13,7 @@ DEFAULT_REGION = 'GRA11'
 MAX_RETRY_PHASE1 = 2
 MAX_RETRY_PHASE2 = 5
 
-def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, humann_s3,
+def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, metaphlan_s3,
         region=DEFAULT_REGION, workers=DEFAULT_WORKERS):
     """Launch biomscope using scitq in two phase, final compilation is done locally.
     Requires awscli, awscli-plugin-endpoint, combine_csv, sed and cut. Paramaters are
@@ -27,8 +27,8 @@ def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, human
     if not(output_s3.startswith('s3://')):
         raise RuntimeError(f'output_s3 should be in the form s3://bucket/path... and not {output_s3}')
 
-    if not (humann_s3.endswith('.tar.gz') or humann_s3.endswith('.tgz')):
-        raise RuntimeError(f'humann_s3 should be in the form s3://bucket/path.../whatever.tgz (or .tar.gz) and not {output_s3}')
+    if not (metaphlan_s3.endswith('.tar.gz') or metaphlan_s3.endswith('.tgz')):
+        raise RuntimeError(f'metaphlan_s3 should be in the form s3://bucket/path.../whatever.tgz (or .tar.gz) and not {output_s3}')
 
 
     source_s3_l = source_s3.split('/')
@@ -67,7 +67,7 @@ def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, human
                 batch=batch+'_metaphlan4',
                 input=' '.join(fastqs),
                 output=f'{output_s3}/{sample}',
-                resource=f'{humann_s3}|untar',
+                resource=f'{metaphlan_s3}|untar',
                 container=DOCKER
             )
         )
@@ -124,9 +124,9 @@ if __name__=='__main__':
         help='a (temporary) S3 folder where Metaphlan4 raw results will be stored')
     parser.add_argument('final_output_s3', type=str, 
         help='a (temporary) S3 folder where Metaphlan4 synthetic results will be stored')
-    parser.add_argument('humann_s3', type=str, 
-        help='An S3 file path for humann and metaphlan4 databases, humann.tgz, explained in https://hub.docker.com/r/gmtscience/metaphlan4')
-
+    
+    parser.add_argument('metaphlan_s3', type=str, 
+        help='An S3 file path for metaphlan4 databases, metaphlan4.tgz, which can be downloaded from Zenodo: https://zenodo.org/record/7537081#.Y8LBN6fP1Bs')
     parser.add_argument('--scitq', type=str, 
         help=f'SCITQ server FQDN, default to {SCITQ_SERVER}', default=SCITQ_SERVER)
     parser.add_argument('--region', type=str, 
@@ -146,7 +146,7 @@ if __name__=='__main__':
         source_s3=args.source_s3,
         output_s3=args.output_s3,
         final_output_s3=args.final_output_s3,
-        humann_s3=args.humann_s3,
+        metaphlan_s3=args.metaphlan_s3,
 
         region=args.region,
         workers=args.workers
