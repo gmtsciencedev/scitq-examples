@@ -1,6 +1,6 @@
 # Metaphlan4
 
-Metaphlan4 is a state-of-the-art public pipeline estimating relative species abundances from WGS samples ([MetaPhlAn](https://github.com/biobakery/MetaPhlAn)).
+Metaphlan4 is a state-of-the-art public pipeline estimating relative species abundances from human gut WGS samples ([MetaPhlAn](https://github.com/biobakery/MetaPhlAn)).
 
 ## Resource
 
