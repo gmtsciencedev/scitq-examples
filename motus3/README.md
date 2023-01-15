@@ -12,8 +12,8 @@ You must also push it to your S3 bucket (in below example, to `s3://bucket/resou
 
 ## Performance
 
-Analysis take ~16 minutes per sample. Given that concurrency is 4 per worker, this makes each worker do ~15 analysis/hour.
-(estimated with a complex dataset of 200 samples (created with CAMISIM) at 2x10M reads of 150pb)
+Analysis take ~30 minutes per sample (in 2x10M depth, 150bp). Given that concurrency is 8 per worker, this makes each worker do ~16 analysis/hour.
+(estimated with a complex dataset of 200 samples created with CAMISIM)
 
 ## Usage
 
