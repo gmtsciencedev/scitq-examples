@@ -61,19 +61,16 @@ def motus(scitq_server, batch, source_s3, output_s3, motus_s3,
 
 
     tasks = []
-    for sample,fastqs in samples.items():
+    for sample,inputs in samples.items():
+        fastqs=[os.path.split(input)[1] for input in inputs]
+        if len(fastqs)!=2:
+            raise RuntimeError(f'Sample should only contains pair of samples: {sample} contains {fastqs}')
         tasks.append(
             s.task_create(
-                command=f"""bash -c 'cd /input
-for fastq in *
-do
-    read=${{fastq%.fastq.gz}}
-    motus profile -db /resource/db_mOTU -s $fastq -e -o /output/$read.motus -t $CPU 
-done
-motus merge -db /resource/db_mOTU -i $(echo /output/*.motus|sed "s/ /,/g") -o /output/{sample}.motus' """,
+                command=f"""sh -c 'motus profile -db /resource/db_mOTU -f /input/{fastqs[0]} -r /input/{fastqs[1]} -n {sample} -o /output/{sample}.motus -t $CPU' """,
                 name=sample,
                 batch=batch+'_motus',
-                input=' '.join(fastqs),
+                input=' '.join(inputs),
                 output=f'{output_s3}/{sample}',
                 resource=f'{motus_s3}|untar',
                 container=DOCKER
