@@ -1,5 +1,7 @@
 # SCITQ examples
 
+These examples are designed to be used with [scitq](https://github.com/gmtsciencedev/scitq). Please read [scitq documentation](https://scitq.readthedocs.io/en/latest/) before trying them.
+
 For this serie of examples you must have installed scitq, and not only `pip install scitq` but a complete install:
 
 - it must be linked to your provider. These examples use OVH as a provider and will refer to OVH instances (which are described here: https://www.ovhcloud.com/en/public-cloud/prices/).
