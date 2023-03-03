@@ -139,7 +139,8 @@ class CamisimHelper:
         for sample in self.samples.columns:
             self.tasks.append(
                 self.s.task_create(
-                    command=f"metagenomesimulation.py /input/config.ini",
+                    command=f"-c 'python3 metagenomesimulation.py /input/config.ini > /dev/null'",
+                    container_options="--entrypoint sh",
                     name=sample,
                     batch=self.name,
                     input=f"{self.s3_camisim_config_folder}/{sample}/",

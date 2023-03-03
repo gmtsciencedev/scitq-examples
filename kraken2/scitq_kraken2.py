@@ -6,7 +6,7 @@ import os
 
 def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
         bracken=False, download=False, fastq=False,
-        batch='my_kraken2', region='WAW1', workers=5):
+        batch='my_kraken2', region='WAW1', workers=5, database=''):
     """Launch a kraken2 scan on FASTA files in s3_input folder using database present
     in s3_kraken_database, and putting result in s3_output folder.
 
@@ -63,11 +63,11 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
         else:
             input='/input/*.fa'
         if bracken:
-            command=f"sh -c 'kraken2 --use-names --threads $CPU --db /resource/ --report /output/{name}.report \
+            command=f"sh -c 'kraken2 --use-names --threads $CPU --db /resource/{database} --report /output/{name}.report \
     {input} > /output/{name}.kraken && \
     bracken -d /resource/ -i /output/{name}.report -o /output/{name}.bracken'"
         else:
-            command=f"sh -c 'kraken2 --use-names --threads $CPU --db /resource/ --report /output/{name}.report \
+            command=f"sh -c 'kraken2 --use-names --threads $CPU --db /resource/{database} --report /output/{name}.report \
     {input} > /output/{name}.kraken'"
         tasks.append(s.task_create(command=command,
                 input=' '.join(sequences),
@@ -108,6 +108,8 @@ if __name__=='__main__':
         help=f'Provider region - default to WAW1 - Warsow at OVH', default="WAW1")
     parser.add_argument('--workers', type=int, 
         help=f'Number of instances to use, default to 5 (each worker will treat ~2 1MB-long FASTA per hour)', default=5)
+    parser.add_argument('--database', type=str, default='',
+        help=f'If kraken database tar contains a subdirectory specify it here')
     args = parser.parse_args()
 
     if not args.scitq:
@@ -115,6 +117,6 @@ if __name__=='__main__':
 
     kraken2(args.scitq, args.s3_input, args.s3_output, args.s3_kraken, batch=args.batch,
         region=args.region, workers=args.workers, bracken=args.bracken, download=args.download,
-        fastq=args.fastq)
+        fastq=args.fastq, database=args.database)
     
     
