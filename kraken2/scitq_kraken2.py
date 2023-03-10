@@ -6,7 +6,8 @@ import os
 
 def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
         bracken=False, download=False, fastq=False,
-        batch='my_kraken2', region='WAW1', workers=5, database=''):
+        batch='my_kraken2', region='WAW1', workers=5, database='',
+        flavor='i1-180', only_bracken=False):
     """Launch a kraken2 scan on FASTA files in s3_input folder using database present
     in s3_kraken_database, and putting result in s3_output folder.
 
@@ -30,8 +31,11 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
 
     s3 = get_s3()
     bucket = s3.Bucket(s3_bucket)
+
     
-    if fastq:
+    if only_bracken:
+        sample_extension='.report'
+    elif fastq:
         sample_extension='.fastq.gz'
     else:
         sample_extension='.fa'
@@ -50,7 +54,7 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
             samples[sample].append(path)
             
     if len(samples)==0:
-        raise RuntimeError(f'No {"gzipped FASTQ (.fastq.gz)" if fastq else "FASTA (.fa)"} samples found in {s3_input}...')
+        raise RuntimeError(f'No {"gzipped FASTQ (.fastq.gz)" if fastq else "KRAKEN2 report (.report)" if only_bracken else "FASTA (.fa)"} samples found in {s3_input}...')
 
     if not s3_output.endswith('/'):
         s3_output+='/'
@@ -62,12 +66,16 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
             input='--paired --gzip-compressed /input/*.fastq.gz'
         else:
             input='/input/*.fa'
-        if bracken:
-            command=f"sh -c 'kraken2 --use-names --threads $CPU --db /resource/{database} --report /output/{name}.report \
-    {input} > /output/{name}.kraken && \
-    bracken -d /resource/ -i /output/{name}.report -o /output/{name}.bracken'"
+        if only_bracken:
+            command=f"sh -c 'cd /output/ && \
+    bracken -d /resource/ -i /input/{name}.report -o /output/{name}.bracken -w /output/{name}-bracken.report'"
+        elif bracken:
+            command=f"sh -c 'cd /output/ && \
+    kraken2 --use-names --threads $CPU --db /resource/{database} --report /output/{name}.report \
+        {input} > /output/{name}.kraken && \
+    bracken -d /resource/ -i /output/{name}.report -o /output/{name}.bracken -w /output/{name}-bracken.report'"
         else:
-            command=f"sh -c 'kraken2 --use-names --threads $CPU --db /resource/{database} --report /output/{name}.report \
+            command=f"sh -c 'cd /output/ && kraken2 --use-names --threads $CPU --db /resource/{database} --report /output/{name}.report \
     {input} > /output/{name}.kraken'"
         tasks.append(s.task_create(command=command,
                 input=' '.join(sequences),
@@ -77,9 +85,12 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
                 batch=batch,
                 ))
 
-    s.worker_deploy(region=region, flavor="i1-180", number=workers, batch=batch,
-        concurrency=1, prefetch=1)
-    s.join(tasks, retry=2)
+    if flavor.lower()!='none':
+        s.worker_deploy(region=region, flavor=flavor, number=workers, batch=batch,
+            concurrency=1, prefetch=1)
+
+    if flavor.lower()!='none' or download:
+        s.join(tasks, retry=2)
 
     if download:
         sp.run([f'aws s3 sync {s3_output} {batch}'], shell=True, check=True)
@@ -110,6 +121,12 @@ if __name__=='__main__':
         help=f'Number of instances to use, default to 5 (each worker will treat ~2 1MB-long FASTA per hour)', default=5)
     parser.add_argument('--database', type=str, default='',
         help=f'If kraken database tar contains a subdirectory specify it here')
+    parser.add_argument('--flavor', type=str, default='i1-180',
+        help=f'Chose an alternate flavor of instance (i1-180 is fine for GTDB base\
+ which requires loads of mem, but smaller db like mgnify might accomodate with a\
+ c2-120, if flavor is none, then there will be no instance automatically allocated)')
+    parser.add_argument('--only-bracken', action="store_true",
+        help=f'This option is for running only bracken when you have already run kraken2 - the input should contain .report files in this case')
     args = parser.parse_args()
 
     if not args.scitq:
@@ -117,6 +134,6 @@ if __name__=='__main__':
 
     kraken2(args.scitq, args.s3_input, args.s3_output, args.s3_kraken, batch=args.batch,
         region=args.region, workers=args.workers, bracken=args.bracken, download=args.download,
-        fastq=args.fastq, database=args.database)
+        fastq=args.fastq, database=args.database, flavor=args.flavor, only_bracken=args.only_bracken)
     
     
