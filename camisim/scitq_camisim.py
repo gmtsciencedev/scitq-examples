@@ -76,7 +76,7 @@ class CamisimHelper:
         print('Initializing')
         self.name = name
         with open(samples,'r') as sample_file:
-            self.samples = pd.read_csv(sample_file, sep='\t', index_col=0)
+            self.samples = pd.read_csv(sample_file, sep='\t', index_col=0).fillna(0.0)
         self.genome_source = genome_source
         self.seed = seed
         self.job_threads = job_threads
@@ -108,7 +108,7 @@ class CamisimHelper:
             composition.to_csv(f'{sample_dir}/composition.tsv', header=False, sep='\t')
             with open(f'{sample_dir}/id_to_genome.tsv','w') as f:
                 for specie in composition.index:
-                    if specie not in self.genomes:
+                    if not pd.isna(specie) and specie not in self.genomes:
                         self.genomes.append(specie)
                     f.write(f'{specie}\t{os.path.join("/resource/genomes", specie)}.fa\n')
             with open(f'{sample_dir}/metadata.tsv','w') as f:
@@ -151,9 +151,10 @@ class CamisimHelper:
             )
     
     def launch(self):
-        self.s.worker_deploy(region=self.region, flavor="i1-180", 
-            number=self.workers, batch=self.name,
-            concurrency=DEFAULT_CONCURRENCY)
+        if self.workers>0:
+            self.s.worker_deploy(region=self.region, flavor="i1-180", 
+                number=self.workers, batch=self.name,
+                concurrency=DEFAULT_CONCURRENCY)
         self.s.join(self.tasks, retry=2)
 
     def run(self):

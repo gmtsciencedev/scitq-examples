@@ -56,36 +56,39 @@ def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, metap
     major_version = metaphlan_version.split('.')[0]
     docker = DOCKER.format(version=metaphlan_version, major_version=major_version)
 
-    if major_version=='3':
-        command=f"""sh -c 'zcat /input/*.fastq.gz |metaphlan --input_type fastq \
-    --no_map --bowtie2db /resource/metaphlan/bowtie2 \
-    --nproc $CPU -o /output/{sample}.metaphlan4_profile.txt' """
-    else:
-        command=f"""sh -c 'zcat /input/*.fastq.gz |metaphlan --input_type fastq \
-    --no_map --offline --bowtie2db /resource/metaphlan/bowtie2 \
-    --nproc $CPU -o /output/{sample}.metaphlan4_profile.txt' """
+
 
     tasks = []
     for sample,fastqs in samples.items():
+        if major_version=='3':
+            command=f"""sh -c 'zcat /input/*.fastq.gz |metaphlan --input_type fastq \
+            --no_map --bowtie2db /resource/metaphlan/bowtie2 \
+            --nproc $CPU -o /output/{sample}.metaphlan4_profile.txt' """
+        else:
+            command=f"""sh -c 'zcat /input/*.fastq.gz |metaphlan --input_type fastq \
+            --no_map --offline --bowtie2db /resource/metaphlan/bowtie2 \
+            --nproc $CPU -o /output/{sample}.metaphlan4_profile.txt' """
         tasks.append(
             s.task_create(
                 command=command,
                 name=sample,
-                batch=batch+'_metaphlan4',
+                batch=batch,
                 input=' '.join(fastqs),
                 output=f'{output_s3}/{sample}',
                 resource=f'{metaphlan_s3}|untar',
                 container=docker
             )
         )
-    s.worker_deploy(number=workers,
-        batch=batch+'_metaphlan4',
-        region=region,
-        flavor='c2-120',
-        concurrency=4,
-        prefetch=1)
+    if workers:
+        s.worker_deploy(number=workers,
+            batch=batch,
+            region=region,
+            flavor='c2-120',
+            concurrency=4,
+            prefetch=1)
     s.join(tasks, retry=MAX_RETRY_PHASE1)
 
+    resource = None
     if metaphlan_version in ['4.0.1','4.0.3','4.0.3.1']:
         command = """sh -c "
 cd /input
@@ -97,6 +100,7 @@ done
 combine_csv -c -a -s '\t' -i '*/*profile.txt.gtdb' -o /output/merged_abundance_table_gtdb.tsv
 " """
     elif metaphlan_version in ['4.0.6']:
+        resource = f'{metaphlan_s3}|untar'
         command = """sh -c "
 cd /input
 merge_metaphlan_tables.py */*profile.txt > /output/merged_abundance_table.tsv
@@ -118,15 +122,17 @@ merge_metaphlan_tables.py */*profile.txt > /output/merged_abundance_table.tsv
             input = output_s3+'/',
             container = docker,
             output = final_output_s3,
+            resource=resource,
             command = command
         )
     
-    s.worker_deploy(number=1,
-        batch=batch+'_metaphlan4_p2',
-        region=region,
-        flavor='c2-30',
-        concurrency=1,
-        prefetch=1)
+    if workers:
+        s.worker_deploy(number=1,
+            batch=batch+'_metaphlan4_p2',
+            region=region,
+            flavor='c2-30',
+            concurrency=1,
+            prefetch=1)
 
     s.join([task], retry=MAX_RETRY_PHASE2)
 
@@ -154,7 +160,7 @@ if __name__=='__main__':
     parser.add_argument('--region', type=str, 
         help=f'Provider region - default to {DEFAULT_REGION}', default=DEFAULT_REGION)
     parser.add_argument('--workers', type=int, default=DEFAULT_WORKERS,
-        help=f'how many workers should we have, default to {DEFAULT_WORKERS}.')
+        help=f'how many workers should we have, default to {DEFAULT_WORKERS}. (setting to 0 will prevent recruitment)')
     parser.add_argument('--metaphlan-version', type=str, default='4.0.6',
         help=f'what version of metaphlan should be used (3.1.0, 4.0.3, 4.0.5 or 4.0.6)')
     args = parser.parse_args()

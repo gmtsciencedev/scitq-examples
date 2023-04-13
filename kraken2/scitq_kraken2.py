@@ -73,7 +73,7 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
             command=f"sh -c 'cd /output/ && \
     kraken2 --use-names --threads $CPU --db /resource/{database} --report /output/{name}.report \
         {input} > /output/{name}.kraken && \
-    bracken -d /resource/ -i /output/{name}.report -o /output/{name}.bracken -w /output/{name}-bracken.report'"
+    bracken -d /resource/{database} -i /output/{name}.report -o /output/{name}.bracken -w /output/{name}-bracken.report'"
         else:
             command=f"sh -c 'cd /output/ && kraken2 --use-names --threads $CPU --db /resource/{database} --report /output/{name}.report \
     {input} > /output/{name}.kraken'"
@@ -85,7 +85,7 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
                 batch=batch,
                 ))
 
-    if flavor.lower()!='none':
+    if flavor.lower()!='none' and workers>0:
         s.worker_deploy(region=region, flavor=flavor, number=workers, batch=batch,
             concurrency=1, prefetch=1)
 
