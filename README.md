@@ -4,8 +4,8 @@ These examples are designed to be used with [scitq](https://github.com/gmtscienc
 
 For this serie of examples you must have installed scitq, and not only `pip install scitq` but a complete install:
 
-- it must be linked to your provider. These examples use OVH as a provider and will refer to OVH instances (which are described here: https://www.ovhcloud.com/en/public-cloud/prices/).
-- it must be linked to an S3 provider (and here we also use OVH S3)
+- it must be linked to your provider. These examples use OVH or Azure as a provider and will refer to OVH or Azure instances (which are described here for OVH: https://www.ovhcloud.com/en/public-cloud/prices/ and their equivalent for Azure is described at the end of this document).
+- it must be linked to an S3 provider (and here we also use OVH S3), or to Azure storage.
 
 
 For some of the examples, you will need to create some resources which means to have access to some Unix server with some disk space and network bandwidth.
