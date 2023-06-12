@@ -8,6 +8,10 @@ That being said, the example is complete and will require minimal work from you,
 
 Special thanks to Florian Plaza-Oñate for his help on CAMISIM setup.
 
+## New: adapted for new providers
+
+Recent versions of scitq support Microsoft Azure in addition to OVH, as well as Azure storage in addition to S3 storage. Microsoft Azure requires the specific `--provider azure` option when launching the script. All `s3://...` URI may be replaced by `azure://...` URI (the standard way of specifying an Azure path is `https://<storageaccount>.blob.core.windows.net/<container>`, which translates in the scitq form as `azure://<container>`, see [scitq documentation](https://scitq.readthedocs.io/en/latest/usage/#input-i) for details). 
+
 ## resources
 
 CAMISIM resources are not very heavy and we have simplified things a lot (making lots of choices that fit our use of CAMISIM, see notably CONFIG_INI template within code and look into CAMISIM documentation for help). Roughly: we use only CAMISIM `metagenomesimulation.py` script which use external genomes that must be provided as a tar.gz archive (which composition is detailed just below), we generate 150bp long reads, 10 millions of pairs (but this figure of 10, called depth, can be changed with --depth parameter).
@@ -26,7 +30,7 @@ Genomes should be named as you want but end in `.fa`. They should be put in a "g
 mkdir genomes
 mv path/to/your/genome/*.fa genomes/
 tar cvzf mygenomes.tar.gz genomes
-aws s3 cp mygenomes.tar.gz s3://mybucket/myfolder/
+scit-fetch copy mygenomes.tar.gz s3://mybucket/myfolder/
 ```
 With that example, the second argument of the script will be `s3://mybucket/myfolder/mygenomes.tar.gz`
 
@@ -68,13 +72,21 @@ NB: If SCITQ version is below v1.0rc6, and you use a specific S3 endpoint, it mu
 
 ## troubleshooting
 
-This script requires OVH special instance i1-180. This instance is sometime hard to find (and may turn to error upon deploy). This error is due to some limitations within OVH system and is not related to SCITQ (or CAMISIM of course). It is advised to look at OVH console to see if instances are sane (any worker that turns with a blue dot in SCITQ UI is fine, only workers that stay with a grey dot for a long time are likely to have failed). You can add manually via SCITQ UI more instances if some fails (just delete the failed ones with SCITQ UI):
+This script requires OVH special instance i1-180 (which is replaced by Standard_E32bds_v5 in Azure). The OVH instance is sometime hard to find (and may turn to error (red in scitq UI) upon deploy). This error is due to some limitations within OVH system and is not related to SCITQ (or CAMISIM of course).You can add manually via scitq UI more instances if some fails (just delete the failed ones with the UI):
+
+The following choices are for OVH:
 
 - concurrency: 9
 - prefetch: 0
-- flavor: i1-180
+- flavor: i1-180 
+- provider: ovh
 - region: any region (GRA11 or UK1 or WAW1 or BHS5 or GRA7 should be fine)
 - batch: the name of your batch (my_kraken2 if you kept the default)
 number: stay below 5 here
 
-In case of trouble, call OVH support to know in which region you're likely to find some i1-180 instances.
+For Azure:
+
+- replace of course provider by: azure
+- replace flavor with: Standard_E32bds_v5
+- replace region with: swedencentral or northeurope (or whatever you want, these places tend to be cheaper at the time of this writing)
+- otherwise keep the other choices.

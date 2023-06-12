@@ -1,5 +1,5 @@
 from scitq.lib import Server
-from scitq.fetch import get_s3
+from scitq.fetch import sync, list_content
 import subprocess
 import argparse
 import os
@@ -10,12 +10,14 @@ DOCKER = 'gmtscience/metaphlan{major_version}:{version}'
 DEFAULT_VERSION = '4.0.6'
 DEFAULT_WORKERS = 5
 DEFAULT_REGION = 'GRA11'
+DEFAULT_PROVIDER = 'ovh'
 
 MAX_RETRY_PHASE1 = 2
 MAX_RETRY_PHASE2 = 5
 
 def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, metaphlan_s3,
-        region=DEFAULT_REGION, workers=DEFAULT_WORKERS, metaphlan_version=DEFAULT_VERSION):
+        region=DEFAULT_REGION, workers=DEFAULT_WORKERS, metaphlan_version=DEFAULT_VERSION,
+        provider=DEFAULT_PROVIDER):
     """Launch biomscope using scitq in two phase, final compilation is done locally.
     Requires awscli, awscli-plugin-endpoint, combine_csv, sed and cut. Paramaters are
     explained through commande line --help"""
@@ -25,29 +27,18 @@ def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, metap
     # remove trailing slash
     source_s3 = source_s3.rstrip('/')
     output_s3 = output_s3.rstrip('/')
-    if not(output_s3.startswith('s3://')):
-        raise RuntimeError(f'output_s3 should be in the form s3://bucket/path... and not {output_s3}')
-
+    
     if not (metaphlan_s3.endswith('.tar.gz') or metaphlan_s3.endswith('.tgz')):
         raise RuntimeError(f'metaphlan_s3 should be in the form s3://bucket/path.../whatever.tgz (or .tar.gz) and not {metaphlan_s3}')
 
 
-    source_s3_l = source_s3.split('/')
-    if source_s3_l[0]!='s3' and source_s3_l[1]!='' and len(source_s3_l)<3:
-        raise RuntimeError(f'source_s3 should be in the form s3://bucket/path... and not {source_s3}')
-    bucket = source_s3_l[2]
-    source_path = '/'.join(source_s3_l[3:])
-
-    s3 = get_s3()
-    bucket_obj = s3.Bucket(bucket)
-    fastqs = [fastq.key for fastq in 
-                bucket_obj.objects.filter(Prefix=source_path) if fastq.key.endswith('fastq.gz')]
+    fastqs = [fastq.name for fastq in 
+                list_content(source_s3) if fastq.name.endswith('fastq.gz')]
     
     # fastqs are supposed to be grouped in folders each folder representing a sample
     samples = {}
     for fastq in fastqs:
         sample = fastq.split('/')[-2]
-        fastq = f's3://{bucket}/{fastq}'
         if sample not in samples:
             samples[sample]=[fastq]
         else:
@@ -83,7 +74,8 @@ def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, metap
         s.worker_deploy(number=workers,
             batch=batch,
             region=region,
-            flavor='c2-120',
+            provider=provider,
+            flavor='c2-120' if provider=='ovh' else 'Standard_D32ads_v5',
             concurrency=4,
             prefetch=1)
     s.join(tasks, retry=MAX_RETRY_PHASE1)
@@ -130,13 +122,14 @@ merge_metaphlan_tables.py */*profile.txt > /output/merged_abundance_table.tsv
         s.worker_deploy(number=1,
             batch=batch+'_metaphlan4_p2',
             region=region,
-            flavor='c2-30',
+            provider=provider,
+            flavor='c2-30' if provider=='ovh' else 'Standard_D8ads_v5',
             concurrency=1,
             prefetch=1)
 
     s.join([task], retry=MAX_RETRY_PHASE2)
 
-    subprocess.run([f'aws s3 sync {final_output_s3} {batch}'], shell=True, check=True)
+    sync(final_output_s3,batch)
 
 
 if __name__=='__main__':
@@ -159,6 +152,8 @@ if __name__=='__main__':
         help=f'SCITQ server FQDN, default to {SCITQ_SERVER}', default=SCITQ_SERVER)
     parser.add_argument('--region', type=str, 
         help=f'Provider region - default to {DEFAULT_REGION}', default=DEFAULT_REGION)
+    parser.add_argument('--provider', type=str, 
+        help=f'Provider for instances (ovh or azure) - default to {DEFAULT_PROVIDER}', choices=['ovh','azure'], default=DEFAULT_PROVIDER)    
     parser.add_argument('--workers', type=int, default=DEFAULT_WORKERS,
         help=f'how many workers should we have, default to {DEFAULT_WORKERS}. (setting to 0 will prevent recruitment)')
     parser.add_argument('--metaphlan-version', type=str, default='4.0.6',
@@ -179,6 +174,7 @@ if __name__=='__main__':
         metaphlan_s3=args.metaphlan_s3,
 
         region=args.region,
+        provider=args.provider,
         workers=args.workers,
         metaphlan_version=args.metaphlan_version
     )

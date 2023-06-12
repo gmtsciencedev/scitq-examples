@@ -2,6 +2,15 @@
 
 Kraken2 is really usefull to quickly align sample reads or whole genomes against huge databases. When using large database be aware of a relative high number of false positives. 
 
+## New: adapted for new providers
+
+Recent versions of scitq support Microsoft Azure in addition to OVH, as well as Azure storage in addition to S3 storage. Microsoft Azure for instances requires the specific `--provider azure` option when launching the script. All `s3://...` URI may be replaced by `azure://...` URI (the standard way of specifying an Azure path is `https://<storageaccount>.blob.core.windows.net/<container>`, which translates in the scitq form as `azure://<container>`, see [scitq documentation](https://scitq.readthedocs.io/en/latest/usage/#input-i) for details). 
+
+When using Azure as a provider for instances, choose the following options:
+
+- `--region swedencentral` (also any region will do as long as it is a real Azure region like `northeurope` or `westeurope`),
+- `--flavor Standard_E64-32ads_v5` (kraken2 needs lots of memory so any instance with >=512Gb is fine) 
+
 ## resources
 
 This example requires:
@@ -27,7 +36,7 @@ ncftpget ftp://ftp.tue.mpg.de/ebio/projects/struo2/GTDB_release207/kraken2/datab
 tar cvzf ../kraken_db.tgz .
 cd ..
 rm -fr gtdb_kraken
-aws s3 cp kraken_db.tgz s3://mybucket/resource/kraken_db.tgz
+scitq-fetch copy kraken_db.tgz s3://mybucket/resource/kraken_db.tgz
 ```
 
 ### Prepare some FASTA files in an S3 folder

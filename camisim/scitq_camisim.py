@@ -6,6 +6,7 @@ import pandas as pd
 import os
 from subprocess import run
 from scitq.lib import Server
+import scitq.fetch
 import argparse
 import math
 
@@ -72,7 +73,7 @@ class CamisimHelper:
     """
 
     def __init__(self, name, samples, genome_source, seed, s3_camisim_config_folder, 
-            scitq_server, region, s3_camisim_output, workers, depth, job_threads=4):
+            scitq_server, region, provider, s3_camisim_output, workers, depth, job_threads=4):
         print('Initializing')
         self.name = name
         with open(samples,'r') as sample_file:
@@ -92,6 +93,7 @@ class CamisimHelper:
         
         self.s = Server(scitq_server)
         self.region = region
+        self.provider = provider
         self.run()
 
 
@@ -130,8 +132,7 @@ class CamisimHelper:
             
     def push_to_s3(self):
         print('Pushing to s3')
-        run(f'aws s3 sync {SAMPLE_SUBDIR} {self.s3_camisim_config_folder}',
-            shell=True, check=True)
+        scitq.fetch.sync(SAMPLE_SUBDIR, self.s3_camisim_config_folder)
     
     def create_tasks(self):
         print('Launching tasks')
@@ -152,7 +153,8 @@ class CamisimHelper:
     
     def launch(self):
         if self.workers>0:
-            self.s.worker_deploy(region=self.region, flavor="i1-180", 
+            self.s.worker_deploy(region=self.region, 
+                flavor="i1-180" if self.provider=="ovh" else "Standard_E32bds_v5", 
                 number=self.workers, batch=self.name,
                 concurrency=DEFAULT_CONCURRENCY)
         self.s.join(self.tasks, retry=2)
@@ -192,6 +194,8 @@ if __name__=='__main__':
         help=f'SCITQ server FQDN, default to {SCITQ_SERVER}', default=SCITQ_SERVER)
     parser.add_argument('--batch', type=str, 
         help=f'SCITQ batch name, default to "{DEFAULT_BATCH}"', default=DEFAULT_BATCH)
+    parser.add_argument('--provider', type=str, 
+        help=f'Provider: ovh or azure - default to ovh',choices=['ovh','azure'], default='ovh')
     parser.add_argument('--region', type=str, 
         help=f'Provider region - default to {DEFAULT_REGION} - Warsow at OVH', default=DEFAULT_REGION)
     parser.add_argument('--workers', type=int, 
@@ -209,6 +213,7 @@ if __name__=='__main__':
                 seed=args.seed,
                 s3_camisim_config_folder=args.s3_camisim_config_folder,
                 scitq_server=args.scitq,
+                provider=args.provider,
                 region=args.region,
                 s3_camisim_output=args.s3_camisim_output,
                 workers=args.workers,

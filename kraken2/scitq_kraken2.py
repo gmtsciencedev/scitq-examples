@@ -1,13 +1,13 @@
 import subprocess as sp
 from scitq.lib import Server
 import argparse
-from scitq.fetch import get_s3
+from scitq.fetch import list_content, sync
 import os
 
 def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
         bracken=False, download=False, fastq=False,
         batch='my_kraken2', region='WAW1', workers=5, database='',
-        flavor='i1-180', only_bracken=False):
+        flavor='i1-180', provider='ovh', only_bracken=False):
     """Launch a kraken2 scan on FASTA files in s3_input folder using database present
     in s3_kraken_database, and putting result in s3_output folder.
 
@@ -24,14 +24,10 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
         raise RuntimeError(f'Please use a tar gziped archive as s3_kraken_database')
     s3_db_path = f"{s3_kraken_database}|untar"
 
-    s3_bucket = s3_input.split('/')[2]
-    s3_path = '/'.join(s3_input.split('/')[3:])
 
     s=Server(scitq_server)
 
-    s3 = get_s3()
-    bucket = s3.Bucket(s3_bucket)
-
+    
     
     if only_bracken:
         sample_extension='.report'
@@ -41,17 +37,16 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
         sample_extension='.fa'
 
     samples = {}
-    for item in [item.key for item in bucket.objects.filter(Prefix=s3_path) 
-                    if item.key.endswith(sample_extension)]:
+    for item in [item.name for item in list_content(s3_input) 
+                    if item.name.endswith(sample_extension)]:
         if fastq:
             sample = item.split('/')[-2]
         else:
             sample,_ = os.path.splitext(os.path.split(item)[-1])
-        path = f's3://{s3_bucket}/{item}'
         if sample not in samples:
-            samples[sample]=[path]
+            samples[sample]=[item]
         else:
-            samples[sample].append(path)
+            samples[sample].append(item)
             
     if len(samples)==0:
         raise RuntimeError(f'No {"gzipped FASTQ (.fastq.gz)" if fastq else "KRAKEN2 report (.report)" if only_bracken else "FASTA (.fa)"} samples found in {s3_input}...')
@@ -87,13 +82,13 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
 
     if flavor.lower()!='none' and workers>0:
         s.worker_deploy(region=region, flavor=flavor, number=workers, batch=batch,
-            concurrency=1, prefetch=1)
+            concurrency=1, prefetch=1, provider=provider)
 
     if flavor.lower()!='none' or download:
         s.join(tasks, retry=2)
 
     if download:
-        sp.run([f'aws s3 sync {s3_output} {batch}'], shell=True, check=True)
+        sync(s3_output, batch)
 
 
 if __name__=='__main__':
@@ -125,6 +120,8 @@ if __name__=='__main__':
         help=f'Chose an alternate flavor of instance (i1-180 is fine for GTDB base\
  which requires loads of mem, but smaller db like mgnify might accomodate with a\
  c2-120, if flavor is none, then there will be no instance automatically allocated)')
+    parser.add_argument('--provider', type=str, choices=['ovh','azure'], default='ovh',
+        help="Choose the provider, default to ovh, can be azure also")
     parser.add_argument('--only-bracken', action="store_true",
         help=f'This option is for running only bracken when you have already run kraken2 - the input should contain .report files in this case')
     args = parser.parse_args()
@@ -134,6 +131,7 @@ if __name__=='__main__':
 
     kraken2(args.scitq, args.s3_input, args.s3_output, args.s3_kraken, batch=args.batch,
         region=args.region, workers=args.workers, bracken=args.bracken, download=args.download,
-        fastq=args.fastq, database=args.database, flavor=args.flavor, only_bracken=args.only_bracken)
+        fastq=args.fastq, database=args.database, flavor=args.flavor, only_bracken=args.only_bracken,
+        provider=args.provider)
     
     
