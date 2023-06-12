@@ -65,7 +65,7 @@ Last, scitq is just a way to ease docker use on a set of workers, you could also
 Last, as you may be aware, it is difficult to translate the reference and meaning of cloud providers, so we have listed the type of instance (called flavor in scitq, taken after Openstack wording) commonly used in the script, the OVH word for it, the Azure word for it, and its description.
 
 OVH flavor | Azure flavor | Description
--- | -- | --
+--|--|--
 c2-30 | Standard_D8ads_v5 | 8 vcpu / 30 gb instance used for some basic computation 
 c2-120 | Standard_D32ads_v5 | 32 vcpu / 120 gb instance used for larger computation (can run 4 metaphlan/motus in a parallel way)
 i1-180 |  Standard_E32bds_v5 | 32 vcpu / +180 gb instance with high IOPS, typically used for CAMISIM which is strongly dependant on disk IO (read/write access). 
