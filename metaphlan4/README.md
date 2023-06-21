@@ -30,3 +30,7 @@ A typical usage would be:
 ```bash
 python scitq_metaphlan4.py mybatch s3://bucket/mybatch/fastqs s3://bucket/mybatch/temp s3://bucket/mybatch/results s3://bucket/resource/metaphlan4.tgz
 ```
+
+## With filter
+
+A specific version of the script, `scitq_metaphlan4_filter.py` is now proposed that include fastp filtering, removal of human genome and normalization of sample by seqtk. Only MetaPhlAn 4.0.6 is supported with this version right now.
