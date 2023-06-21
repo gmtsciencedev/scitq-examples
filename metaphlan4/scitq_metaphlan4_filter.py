@@ -13,12 +13,13 @@ DEFAULT_REGION = 'GRA11'
 DEFAULT_PROVIDER = 'ovh'
 DEFAULT_DEPTH=20000000
 DEFAULT_SEED=42
+DEFAULT_CHM13V2='https://genome-idx.s3.amazonaws.com/bt/chm13v2.0.zip'
 
 MAX_RETRY_PHASE1 = 2
 MAX_RETRY_PHASE2 = 5
 
 def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, metaphlan_s3,
-        region=DEFAULT_REGION, workers=DEFAULT_WORKERS, metaphlan_version=DEFAULT_VERSION,
+        human_catalog, region=DEFAULT_REGION, workers=DEFAULT_WORKERS, metaphlan_version=DEFAULT_VERSION,
         provider=DEFAULT_PROVIDER, depth=DEFAULT_DEPTH, seed=DEFAULT_SEED):
     """Launch biomscope using scitq in two phase, final compilation is done locally.
     Requires awscli, awscli-plugin-endpoint, combine_csv, sed and cut. Paramaters are
@@ -50,6 +51,12 @@ def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, metap
     version = '4.0.6.1' if metaphlan_version=='4.0.6' else metaphlan_version
     docker = DOCKER.format(version=version, major_version=major_version)
 
+    if human_catalog.endswith('.zip'):
+        human_catalog_action = 'unzip'
+    elif human_catalog.endswith('.tgz') or human_catalog.endswith('.tar.gz') or human_catalog.endswith('.tar'):
+        human_catalog_action = 'untar'
+    else:
+        raise RuntimeError(f'This extension is unsupported for human catalog: {human_catalog}')
 
     if major_version=='3':
         metaphlan_option=''
@@ -76,7 +83,7 @@ def metaphlan4(scitq_server, batch, source_s3, output_s3, final_output_s3, metap
                 batch=batch,
                 input=' '.join(fastqs),
                 output=f'{output_s3}/{sample}',
-                resource=f'{metaphlan_s3}|untar azure://rnd/resource/chm13v2.0.tgz|untar',
+                resource=f'{metaphlan_s3}|untar {human_catalog}|{human_catalog_action}',
                 container=docker
             )
         )
@@ -172,6 +179,8 @@ if __name__=='__main__':
         help=f'what should be the normalization depth (default to {DEFAULT_DEPTH} for each pair member)')
     parser.add_argument('--seed', type=int, default=DEFAULT_SEED,
         help=f'what should be the seed for normalization randomness (default to {DEFAULT_SEED})')
+    parser.add_argument('--human-catalog', type=str, default=DEFAULT_CHM13V2,
+        help=f'A tar gz file human catalog for chm13v2 (default to {DEFAULT_CHM13V2})')
     args = parser.parse_args()
 
     if not args.scitq:
