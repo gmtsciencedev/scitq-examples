@@ -11,7 +11,8 @@ import argparse
 import math
 
 DEFAULT_BATCH = "my_camisim"
-DEFAULT_REGION = "WAW1"
+DEFAULT_REGION = {"ovh":"WAW1", "azure":"swedencentral"}
+DEFAULT_FLAVOR = {"ovh":"i1-180", "azure":"Standard_E32bds_v5"}
 DEFAULT_WORKERS = 5
 DEFAULT_SEED = 42
 DEFAULT_CONCURRENCY = 9
@@ -73,7 +74,7 @@ class CamisimHelper:
     """
 
     def __init__(self, name, samples, genome_source, seed, s3_camisim_config_folder, 
-            scitq_server, region, provider, s3_camisim_output, workers, depth, job_threads=4):
+            scitq_server, region, flavor, provider, s3_camisim_output, workers, depth, job_threads=4):
         print('Initializing')
         self.name = name
         with open(samples,'r') as sample_file:
@@ -94,6 +95,7 @@ class CamisimHelper:
         self.s = Server(scitq_server)
         self.region = region
         self.provider = provider
+        self.flavor = flavor
         self.run()
 
 
@@ -154,7 +156,8 @@ class CamisimHelper:
     def launch(self):
         if self.workers>0:
             self.s.worker_deploy(region=self.region, 
-                flavor="i1-180" if self.provider=="ovh" else "Standard_E32bds_v5", 
+                flavor=self.flavor,
+                provider=self.provider, 
                 number=self.workers, batch=self.name,
                 concurrency=DEFAULT_CONCURRENCY)
         self.s.join(self.tasks, retry=2)
@@ -197,7 +200,9 @@ if __name__=='__main__':
     parser.add_argument('--provider', type=str, 
         help=f'Provider: ovh or azure - default to ovh',choices=['ovh','azure'], default='ovh')
     parser.add_argument('--region', type=str, 
-        help=f'Provider region - default to {DEFAULT_REGION} - Warsow at OVH', default=DEFAULT_REGION)
+        help=f'Provider region - default to {DEFAULT_REGION}', default=None)
+    parser.add_argument('--flavor', type=str, 
+        help=f'Provider flavor (instance type) - default to {DEFAULT_FLAVOR}', default=None)
     parser.add_argument('--workers', type=int, 
         help=f'Number of instances to use, default to {DEFAULT_WORKERS} (each worker will take up to 72h)', default=DEFAULT_WORKERS)
     args = parser.parse_args()
@@ -205,6 +210,11 @@ if __name__=='__main__':
     if not args.scitq:
         raise RuntimeError('You must define which SCITQ server we use, either defining SCITQ_SERVER environment variable or using --scitq')
 
+    # set provider dependant defaults
+    if args.region is None:
+        args.region = DEFAULT_REGION[args.provider]
+    if args.flavor is None:
+        args.flavor = DEFAULT_FLAVOR[args.provider]
 
     CamisimHelper(
                 name=args.batch,
@@ -215,6 +225,7 @@ if __name__=='__main__':
                 scitq_server=args.scitq,
                 provider=args.provider,
                 region=args.region,
+                flavor=args.flavor,
                 s3_camisim_output=args.s3_camisim_output,
                 workers=args.workers,
                 depth=args.depth)
