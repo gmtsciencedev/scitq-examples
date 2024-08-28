@@ -7,7 +7,8 @@ import os
 def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
         bracken=False, download=False, fastq=False,
         batch='my_kraken2', region='WAW1', workers=5, database='',
-        flavor='i1-180', provider='ovh', only_bracken=False):
+        flavor='i1-180', provider='ovh', only_bracken=False,
+        concurrency=1):
     """Launch a kraken2 scan on FASTA files in s3_input folder using database present
     in s3_kraken_database, and putting result in s3_output folder.
 
@@ -18,6 +19,7 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
     - batch: an optional name for SCITQ batch (default to my_kraken2)
     - region: an OVH region for the instances. Default to Warsow (WAW1)
     - workers: the number of workers (default to 5)
+    - concurrency: the number of process per worker (default to 1)
 
     """
     if not (s3_kraken_database.endswith('.tgz') or s3_kraken_database.endswith('.tar.gz')):
@@ -82,7 +84,7 @@ def kraken2(scitq_server, s3_input, s3_output, s3_kraken_database,
 
     if flavor.lower()!='none' and workers>0:
         s.worker_deploy(region=region, flavor=flavor, number=workers, batch=batch,
-            concurrency=1, prefetch=1, provider=provider)
+            concurrency=concurrency, prefetch=concurrency, provider=provider)
 
     if flavor.lower()!='none' or download:
         s.join(tasks, retry=2)
@@ -114,6 +116,8 @@ if __name__=='__main__':
         help=f'Provider region - default to WAW1 - Warsow at OVH', default="WAW1")
     parser.add_argument('--workers', type=int, 
         help=f'Number of instances to use, default to 5 (each worker will treat ~2 1MB-long FASTA per hour)', default=5)
+    parser.add_argument('--concurrency', type=int, 
+        help=f"The number of process per worker, default to 1", default=1)
     parser.add_argument('--database', type=str, default='',
         help=f'If kraken database tar contains a subdirectory specify it here')
     parser.add_argument('--flavor', type=str, default='i1-180',
@@ -132,6 +136,6 @@ if __name__=='__main__':
     kraken2(args.scitq, args.s3_input, args.s3_output, args.s3_kraken, batch=args.batch,
         region=args.region, workers=args.workers, bracken=args.bracken, download=args.download,
         fastq=args.fastq, database=args.database, flavor=args.flavor, only_bracken=args.only_bracken,
-        provider=args.provider)
+        provider=args.provider, concurrency=args.concurrency)
     
     
